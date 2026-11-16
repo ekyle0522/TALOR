@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TALOR · Tail Cues, Principal Corrections (NeurIPS 2026)</title>
+<meta name="description" content="TALOR is a small, backward-free module between the feature extractor and the frozen linear head. It predicts from low-gain tail coordinates how a distribution shift has moved the high-gain principal coordinates, and subtracts that drift. NeurIPS 2026.">
+<meta name="author" content="Yingkai Yang, Chaoqi Chen, Hui Huang">
+<meta name="theme-color" content="#fbfbfc">
+<link rel="canonical" href="https://ekyle0522.github.io/TALOR/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TALOR">
+<meta property="og:title" content="Tail Cues, Principal Corrections: Plug-and-Play Rectification for Open-Set Test-Time Adaptation">
+<meta property="og:description" content="A backward-free plug-in for open-set test-time adaptation. NeurIPS 2026.">
+<meta property="og:url" content="https://ekyle0522.github.io/TALOR/">
+<meta property="og:image" content="https://ekyle0522.github.io/TALOR/assets/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="assets/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="preload" href="fonts/source-sans-pro/source-sans-pro-regular.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="fonts/source-sans-pro/source-sans-pro-semibold.woff" as="font" type="font/woff" crossorigin>
+<link rel="stylesheet" href="css/style.css">
+<script>document.documentElement.classList.add("js");</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="nav" id="nav">
+  <div class="nav-inner">
+    <a class="brand" href="#top" aria-label="TALOR, back to top"><svg class="scissors scissors-nav" viewBox="0 0 512 512" style="--px:269.9px;--py:243.3px" aria-hidden="true" focusable="false"><g class="half half-back"><path d="M255.6 276.6L375.4 51.3L375.9 31.1Q265.3 133.4 215.7 255.4ZM252.9 225.6L233.7 324.3L273.2 332.0L292.3 233.3Z" fill="none" stroke="#1f2328" stroke-width="26.1" stroke-linejoin="round"/><path d="M255.6 276.6L375.4 51.3L375.9 31.1Q265.3 133.4 215.7 255.4ZM252.9 225.6L233.7 324.3L273.2 332.0L292.3 233.3Z" fill="#cfd5dc"/><path d="M270.4 223.1Q298.7 137.7 348.4 70.1" fill="none" stroke="#fff" stroke-opacity="0.6" stroke-width="7.2" stroke-linecap="round"/><path d="M230.7 313.5L222.1 357.9L271.4 367.4L280.0 323.0ZM223.9 480.0A66.3 57.3 -259.0 1 0 249.2 349.8A66.3 57.3 -259.0 1 0 223.9 480.0ZM228.7 455.4A41.2 32.2 -259.0 1 0 244.4 374.5A41.2 32.2 -259.0 1 0 228.7 455.4Z" fill="none" stroke="#1f2328" stroke-width="26.1" stroke-linejoin="round"/><path d="M230.7 313.5L222.1 357.9L271.4 367.4L280.0 323.0ZM223.9 480.0A66.3 57.3 -259.0 1 0 249.2 349.8A66.3 57.3 -259.0 1 0 223.9 480.0ZM228.7 455.4A41.2 32.2 -259.0 1 0 244.4 374.5A41.2 32.2 -259.0 1 0 228.7 455.4Z" fill="#0f8461" fill-rule="evenodd"/></g><g class="half half-front"><path d="M237.1 258.8L458.1 131.1L478.3 129.9Q379.9 244.1 259.7 297.9ZM279.1 220.5L181.2 243.1L190.2 282.3L288.2 259.7Z" fill="none" stroke="#1f2328" stroke-width="26.1" stroke-linejoin="round"/><path d="M237.1 258.8L458.1 131.1L478.3 129.9Q379.9 244.1 259.7 297.9ZM279.1 220.5L181.2 243.1L190.2 282.3L288.2 259.7Z" fill="#eceff2"/><path d="M290.1 242.1Q374.4 210.8 440.3 158.9" fill="none" stroke="#fff" stroke-opacity="0.95" stroke-width="7.2" stroke-linecap="round"/><path d="M189.9 236.0L145.8 246.2L157.1 295.1L201.2 284.9ZM34.9 297.5A66.3 57.3 -193.0 1 0 164.2 267.7A66.3 57.3 -193.0 1 0 34.9 297.5ZM59.4 291.9A41.2 32.2 -193.0 1 0 139.7 273.4A41.2 32.2 -193.0 1 0 59.4 291.9Z" fill="none" stroke="#1f2328" stroke-width="26.1" stroke-linejoin="round"/><path d="M189.9 236.0L145.8 246.2L157.1 295.1L201.2 284.9ZM34.9 297.5A66.3 57.3 -193.0 1 0 164.2 267.7A66.3 57.3 -193.0 1 0 34.9 297.5ZM59.4 291.9A41.2 32.2 -193.0 1 0 139.7 273.4A41.2 32.2 -193.0 1 0 59.4 291.9Z" fill="#12946b" fill-rule="evenodd"/></g><g class="pivot"><path d="M289.0 243.3A19.1 19.1 0 1 0 250.8 243.3A19.1 19.1 0 1 0 289.0 243.3Z" fill="none" stroke="#1f2328" stroke-width="26.1" stroke-linejoin="round"/><path d="M289.0 243.3A19.1 19.1 0 1 0 250.8 243.3A19.1 19.1 0 1 0 289.0 243.3Z" fill="#f4f5f7"/><path d="M276.5 243.3A6.5 6.5 0 1 0 263.4 243.3A6.5 6.5 0 1 0 276.5 243.3Z" fill="#1f2328"/></g></svg><span>TALOR</span></a>
+    <nav class="nav-links" aria-label="Sections">
+      <a href="#results">Results</a>
+      <a href="#doco">DOCO × TALOR</a>
+      <a href="#cost">Cost</a>
+      <a href="#method">Method</a>
+      <a href="#cite">Cite</a>
+    </nav>
+    <div class="nav-actions">
+      <a class="btn btn-sm" href="https://arxiv.org/pdf/2610.36870">Paper</a>
+      <a class="btn btn-sm btn-dark" href="https://github.com/ekyle0522/TALOR">Code</a>
+    </div>
+  </div>
+  <div class="nav-progress" aria-hidden="true"><span></span></div>
+</header>
+
+<main id="main">
+
+<!-- ===================================================== hero -->
+<section class="hero" id="top">
+  <div class="hero-glow" aria-hidden="true"></div>
+  <div class="hero-inner">
+    <div class="hero-marks">
+      <div class="hero-emblem"><svg class="scissors scissors-hero" viewBox="0 0 512 512" style="--px:269.9px;--py:243.3px" aria-hidden="true" focusable="false"><g class="half half-back"><path d="M255.6 276.6L375.4 51.3L375.9 31.1Q265.3 133.4 215.7 255.4ZM252.9 225.6L233.7 324.3L273.2 332.0L292.3 233.3Z" fill="none" stroke="#1f2328" stroke-width="26.1" stroke-linejoin="round"/><path d="M255.6 276.6L375.4 51.3L375.9 31.1Q265.3 133.4 215.7 255.4ZM252.9 225.6L233.7 324.3L273.2 332.0L292.3 233.3Z" fill="#cfd5dc"/><path d="M270.4 223.1Q298.7 137.7 348.4 70.1" fill="none" stroke="#fff" stroke-opacity="0.6" stroke-width="7.2" stroke-linecap="round"/><path d="M230.7 313.5L222.1 357.9L271.4 367.4L280.0 323.0ZM223.9 480.0A66.3 57.3 -259.0 1 0 249.2 349.8A66.3 57.3 -259.0 1 0 223.9 480.0ZM228.7 455.4A41.2 32.2 -259.0 1 0 244.4 374.5A41.2 32.2 -259.0 1 0 228.7 455.4Z" fill="none" stroke="#1f2328" stroke-width="26.1" stroke-linejoin="round"/><path d="M230.7 313.5L222.1 357.9L271.4 367.4L280.0 323.0ZM223.9 480.0A66.3 57.3 -259.0 1 0 249.2 349.8A66.3 57.3 -259.0 1 0 223.9 480.0ZM228.7 455.4A41.2 32.2 -259.0 1 0 244.4 374.5A41.2 32.2 -259.0 1 0 228.7 455.4Z" fill="#0f8461" fill-rule="evenodd"/></g><g class="half half-front"><path d="M237.1 258.8L458.1 131.1L478.3 129.9Q379.9 244.1 259.7 297.9ZM279.1 220.5L181.2 243.1L190.2 282.3L288.2 259.7Z" fill="none" stroke="#1f2328" stroke-width="26.1" stroke-linejoin="round"/><path d="M237.1 258.8L458.1 131.1L478.3 129.9Q379.9 244.1 259.7 297.9ZM279.1 220.5L181.2 243.1L190.2 282.3L288.2 259.7Z" fill="#eceff2"/><path d="M290.1 242.1Q374.4 210.8 440.3 158.9" fill="none" stroke="#fff" stroke-opacity="0.95" stroke-width="7.2" stroke-linecap="round"/><path d="M189.9 236.0L145.8 246.2L157.1 295.1L201.2 284.9ZM34.9 297.5A66.3 57.3 -193.0 1 0 164.2 267.7A66.3 57.3 -193.0 1 0 34.9 297.5ZM59.4 291.9A41.2 32.2 -193.0 1 0 139.7 273.4A41.2 32.2 -193.0 1 0 59.4 291.9Z" fill="none" stroke="#1f2328" stroke-width="26.1" stroke-linejoin="round"/><path d="M189.9 236.0L145.8 246.2L157.1 295.1L201.2 284.9ZM34.9 297.5A66.3 57.3 -193.0 1 0 164.2 267.7A66.3 57.3 -193.0 1 0 34.9 297.5ZM59.4 291.9A41.2 32.2 -193.0 1 0 139.7 273.4A41.2 32.2 -193.0 1 0 59.4 291.9Z" fill="#12946b" fill-rule="evenodd"/></g><g class="pivot"><path d="M289.0 243.3A19.1 19.1 0 1 0 250.8 243.3A19.1 19.1 0 1 0 289.0 243.3Z" fill="none" stroke="#1f2328" stroke-width="26.1" stroke-linejoin="round"/><path d="M289.0 243.3A19.1 19.1 0 1 0 250.8 243.3A19.1 19.1 0 1 0 289.0 243.3Z" fill="#f4f5f7"/><path d="M276.5 243.3A6.5 6.5 0 1 0 263.4 243.3A6.5 6.5 0 1 0 276.5 243.3Z" fill="#1f2328"/></g></svg></div>
+      <img class="venue-logo" src="assets/neurips_logo.svg" width="60" height="27" alt="NeurIPS (Conference on Neural Information Processing Systems)">
+    </div>
+    <p class="venue">NeurIPS 2026</p>
+    <h1 class="title">
+      <span class="title-main">Tail Cues, Principal Corrections:</span>
+      <span class="title-sub">Plug-and-Play Rectification for Open-Set <span class="nowrap">Test-Time</span> Adaptation</span>
+    </h1>
+    <p class="authors"><span class="author">Yingkai Yang</span><span class="dot" aria-hidden="true">·</span><wbr><span class="author">Chaoqi Chen</span><span class="dot" aria-hidden="true">·</span><wbr><span class="author">Hui Huang</span></p>
+    <p class="affil">Shenzhen University</p>
+    <div class="links">
+      <a class="btn btn-dark" href="https://arxiv.org/pdf/2610.36870"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h8l4 4v16H6z M14 2v4h4 M9 12h6 M9 16h6"/></svg>Paper</a>
+      <a class="btn" href="https://arxiv.org/abs/2610.36870"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6 M20 4l-9 9 M18 14v6H4V6h6"/></svg>arXiv</a>
+      <a class="btn" href="https://github.com/ekyle0522/TALOR"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7l-5 5 5 5 M15 7l5 5-5 5"/></svg>Code</a>
+      <a class="btn" href="https://huggingface.co/datasets/ekyleyang/DOCO-LAION-C"><svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5.5" rx="7" ry="3"/><path d="M5 5.5v13c0 1.7 3.1 3 7 3s7-1.3 7-3v-13 M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/></svg>Dataset</a>
+      <a class="btn" href="https://github.com/ekyle0522/DOCO"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1 M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>DOCO</a>
+      <a class="btn" href="#cite"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 6h4v5H8.5c0 2 .8 3.4 2.5 4.5 M15 6h4v5h-2.5c0 2 .8 3.4 2.5 4.5"/></svg>BibTeX</a>
+    </div>
+  </div>
+
+  <figure class="hero-spectrum" id="hero-spectrum">
+    <div class="spectrum-stage">
+      <div class="spectrum-svg" aria-hidden="true"></div>
+      <div class="cut-scissors" aria-hidden="true"><svg class="scissors scissors-cut" viewBox="0 0 512 512" style="--px:269.9px;--py:243.3px" aria-hidden="true" focusable="false"><g class="half half-back"><path d="M255.6 276.6L375.4 51.3L375.9 31.1Q265.3 133.4 215.7 255.4ZM252.9 225.6L233.7 324.3L273.2 332.0L292.3 233.3Z" fill="none" stroke="#1f2328" stroke-width="26.1" stroke-linejoin="round"/><path d="M255.6 276.6L375.4 51.3L375.9 31.1Q265.3 133.4 215.7 255.4ZM252.9 225.6L233.7 324.3L273.2 332.0L292.3 233.3Z" fill="#cfd5dc"/><path d="M270.4 223.1Q298.7 137.7 348.4 70.1" fill="none" stroke="#fff" stroke-opacity="0.6" stroke-width="7.2" stroke-linecap="round"/><path d="M230.7 313.5L222.1 357.9L271.4 367.4L280.0 323.0ZM223.9 480.0A66.3 57.3 -259.0 1 0 249.2 349.8A66.3 57.3 -259.0 1 0 223.9 480.0ZM228.7 455.4A41.2 32.2 -259.0 1 0 244.4 374.5A41.2 32.2 -259.0 1 0 228.7 455.4Z" fill="none" stroke="#1f2328" stroke-width="26.1" stroke-linejoin="round"/><path d="M230.7 313.5L222.1 357.9L271.4 367.4L280.0 323.0ZM223.9 480.0A66.3 57.3 -259.0 1 0 249.2 349.8A66.3 57.3 -259.0 1 0 223.9 480.0ZM228.7 455.4A41.2 32.2 -259.0 1 0 244.4 374.5A41.2 32.2 -259.0 1 0 228.7 455.4Z" fill="#0f8461" fill-rule="evenodd"/></g><g class="half half-front"><path d="M237.1 258.8L458.1 131.1L478.3 129.9Q379.9 244.1 259.7 297.9ZM279.1 220.5L181.2 243.1L190.2 282.3L288.2 259.7Z" fill="none" stroke="#1f2328" stroke-width="26.1" stroke-linejoin="round"/><path d="M237.1 258.8L458.1 131.1L478.3 129.9Q379.9 244.1 259.7 297.9ZM279.1 220.5L181.2 243.1L190.2 282.3L288.2 259.7Z" fill="#eceff2"/><path d="M290.1 242.1Q374.4 210.8 440.3 158.9" fill="none" stroke="#fff" stroke-opacity="0.95" stroke-width="7.2" stroke-linecap="round"/><path d="M189.9 236.0L145.8 246.2L157.1 295.1L201.2 284.9ZM34.9 297.5A66.3 57.3 -193.0 1 0 164.2 267.7A66.3 57.3 -193.0 1 0 34.9 297.5ZM59.4 291.9A41.2 32.2 -193.0 1 0 139.7 273.4A41.2 32.2 -193.0 1 0 59.4 291.9Z" fill="none" stroke="#1f2328" stroke-width="26.1" stroke-linejoin="round"/><path d="M189.9 236.0L145.8 246.2L157.1 295.1L201.2 284.9ZM34.9 297.5A66.3 57.3 -193.0 1 0 164.2 267.7A66.3 57.3 -193.0 1 0 34.9 297.5ZM59.4 291.9A41.2 32.2 -193.0 1 0 139.7 273.4A41.2 32.2 -193.0 1 0 59.4 291.9Z" fill="#12946b" fill-rule="evenodd"/></g><g class="pivot"><path d="M289.0 243.3A19.1 19.1 0 1 0 250.8 243.3A19.1 19.1 0 1 0 289.0 243.3Z" fill="none" stroke="#1f2328" stroke-width="26.1" stroke-linejoin="round"/><path d="M289.0 243.3A19.1 19.1 0 1 0 250.8 243.3A19.1 19.1 0 1 0 289.0 243.3Z" fill="#f4f5f7"/><path d="M276.5 243.3A6.5 6.5 0 1 0 263.4 243.3A6.5 6.5 0 1 0 276.5 243.3Z" fill="#1f2328"/></g></svg></div>
+    </div>
+    <figcaption>Singular values of the frozen ViT-B/16 classifier head, cut at <i>k</i> = 353 (τ = 0.8) into high-gain <span class="c-principal">principal</span> and low-gain <span class="c-tail">tail</span> directions.</figcaption>
+  </figure>
+  <a class="scroll-cue" href="#tldr" aria-label="Scroll to the summary"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></a>
+</section>
+
+<!-- ===================================================== summary -->
+<section class="tldr" id="tldr">
+  <div class="wrap narrow">
+    <p class="lead reveal"><b>TALOR</b> (<b>T</b>est-time <b>A</b>daptation via <b>L</b>inear <b>O</b>nline <b>R</b>ectification) is a small, backward-free module that sits between the feature extractor and the frozen linear head. It uses the head's own SVD to split every feature into high-gain <i>principal</i> coordinates and low-gain <i>tail</i> coordinates, predicts from the tail how the distribution shift has moved the principal coordinates, and subtracts that drift before the unchanged head. It needs no backpropagation, no source data and no source statistics. It works on a frozen model and on top of other TTA methods.</p>
+  </div>
+  <div class="wrap stats">
+    <div class="stat reveal">
+      <div class="stat-num"><span class="count" data-count="+10.4" data-decimals="1" data-prefix="+">+10.4</span></div>
+      <p class="stat-label">H-score for a frozen ViT-B/16 on ImageNet-C (57.3 → 67.7), with no gradient steps</p>
+    </div>
+    <div class="stat reveal">
+      <div class="stat-num"><span class="count" data-count="270" data-decimals="0">270</span><span class="stat-unit"> / 270</span></div>
+      <p class="stat-label">method × csOOD × benchmark settings improved, across 15 methods</p>
+    </div>
+    <div class="stat stat-combo reveal">
+      <div class="stat-num"><span class="count" data-count="74.9" data-decimals="1">74.9</span></div>
+      <p class="stat-label">H-score of DOCO + TALOR on ImageNet-C, the highest in the benchmark (77.1 on LAION-C)</p>
+    </div>
+    <div class="stat reveal">
+      <div class="stat-num"><span class="stat-unit">≤ </span><span class="count" data-count="2.2" data-decimals="1">2.2</span><span class="stat-unit"> %</span></div>
+      <p class="stat-label">extra wall-clock time on ImageNet-C; +154 MiB GPU memory on the frozen model</p>
+    </div>
+  </div>
+  <p class="metric-note wrap">H-score: harmonic mean of ID accuracy and OOD AUROC · ViT-B/16 · csID : csOOD = 1 : 1</p>
+</section>
+
+<!-- ===================================================== results: teaser -->
+<section class="section" id="results">
+  <div class="wrap">
+    <p class="eyebrow reveal">Results</p>
+    <h2 class="reveal">Higher H-score, same runtime</h2>
+  </div>
+  <div class="wrap wide scrolly" id="teaser-scrolly">
+    <div class="scrolly-graphic">
+      <div class="card chart-card">
+        <div class="chart" id="teaser-chart" role="img" aria-label="Scatter plot of H-score against wall-clock time on ImageNet-C for eleven methods, before and after attaching TALOR. Every method moves up by 2.9 to 19.9 points at almost the same runtime."></div>
+        <p class="tap-hint" aria-hidden="true">Tap a point for its numbers.</p>
+        <div class="legend teaser-legend" aria-hidden="true">
+          <span><i class="lg-dot lg-base"></i>original method</span>
+          <span><i class="lg-dot lg-talor"></i>+ TALOR</span>
+          <span><i class="lg-star"></i>DOCO + TALOR</span>
+          <span><i class="lg-dash"></i>Source + TALOR (67.7)</span>
+        </div>
+        <div class="step-dots" role="group" aria-label="Story steps">
+          <button type="button" data-goto="0" aria-label="Step 1"></button>
+          <button type="button" data-goto="1" aria-label="Step 2"></button>
+          <button type="button" data-goto="2" aria-label="Step 3"></button>
+          <button type="button" data-goto="3" aria-label="Step 4"></button>
+        </div>
+      </div>
+    </div>
+    <div class="scrolly-steps">
+      <div class="step" data-step="0"><div class="step-card">
+        <p class="step-kicker">ImageNet-C open-set stream</p>
+        <p>Each circle is one method: its H-score and the wall-clock time it needs for the whole stream, 15 corruption domains with 10,000 images each, half of them from unknown classes.</p>
+      </div></div>
+      <div class="step" data-step="1"><div class="step-card">
+        <p class="step-kicker">Attach TALOR</p>
+        <p>Every method moves up, by +2.9 to +19.9 H-score. None moves right: TALOR adds at most 2.2 % wall-clock time.</p>
+      </div></div>
+      <div class="step" data-step="2"><div class="step-card">
+        <p class="step-kicker">TALOR alone</p>
+        <p>On a frozen ViT-B/16, TALOR raises the H-score from 57.3 to <b>67.7</b> (dashed line). That is higher than 13 of the 14 TTA methods we compare with, without a single gradient step.</p>
+      </div></div>
+      <div class="step" data-step="3"><div class="step-card">
+        <p class="step-kicker">DOCO × TALOR</p>
+        <p>With TALOR, our CVPR 2026 method DOCO reaches <b>74.9</b>, the highest H-score in the benchmark. <a href="#doco">See how they combine ↓</a></p>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================== results: explorer -->
+<section class="section alt" id="explorer">
+  <div class="wrap">
+    <p class="eyebrow reveal">Plug-and-play</p>
+    <h2 class="reveal">15 methods, 3 benchmarks, all improved</h2>
+    <p class="section-lead reveal">TALOR raises the mean H-score of every method on ImageNet-C, LAION-C and the extreme LAION-C setting. Pick a benchmark or a single csOOD dataset; hover over or tap a row or cell for exact values.</p>
+  </div>
+  <div class="wrap wide">
+    <div class="controls" id="explorer-controls">
+      <div class="segmented" id="bench-tabs" role="group" aria-label="Benchmark">
+        <button type="button" data-suite="imagenet-c" aria-pressed="true">ImageNet-C</button>
+        <button type="button" data-suite="laion-c-sev1" aria-pressed="false">LAION-C</button>
+        <button type="button" data-suite="laion-c-sev3" aria-pressed="false">LAION-C · extreme</button>
+      </div>
+      <label class="select">
+        <span>csOOD dataset</span>
+        <select id="ood-select">
+          <option value="mean">Mean of all six</option>
+          <option value="places365">Places365</option>
+          <option value="textures">Textures</option>
+          <option value="inaturalist">iNaturalist</option>
+          <option value="sun">SUN</option>
+          <option value="ssb-hard">SSB-Hard</option>
+          <option value="ninco_ood_classes">NINCO</option>
+        </select>
+      </label>
+      <div class="segmented segmented-sm" id="sort-tabs" role="group" aria-label="Sort rows">
+        <button type="button" data-sort="orig" aria-pressed="true">Sort by original</button>
+        <button type="button" data-sort="gain" aria-pressed="false">Sort by gain</button>
+      </div>
+    </div>
+
+    <div class="card explorer-card reveal">
+      <div class="card-head">
+        <h3>H-score before and after TALOR</h3>
+        <p class="card-meta" id="dumbbell-meta" aria-live="polite"></p>
+      </div>
+      <div class="chart" id="dumbbell-chart" role="img" aria-label="Dumbbell chart of H-score before and after TALOR for 15 methods."></div>
+      <div class="legend" aria-hidden="true">
+        <span><i class="lg-dot lg-base"></i>original method</span>
+        <span><i class="lg-dot lg-talor"></i>+ TALOR, with the gain</span>
+        <span><i class="lg-dot lg-combo"></i>DOCO + TALOR</span>
+      </div>
+    </div>
+
+    <div class="card explorer-card reveal">
+      <div class="card-head">
+        <h3>Gain per corruption</h3>
+        <p class="card-meta" id="heatmap-meta" aria-live="polite"></p>
+      </div>
+      <div class="chart chart-scroll" id="heatmap-chart" role="img" aria-label="Heat map of TALOR's H-score gain for each method and corruption."></div>
+      <p class="swipe-hint" aria-hidden="true">Swipe the table sideways to see every corruption.</p>
+      <div class="heat-legend" aria-hidden="true">
+        <span>gain in H-score</span><i class="heat-ramp"></i><span class="heat-ticks"><span>0</span><span>+5</span><span>+10</span><span>+15</span><span>+20</span><span>≥ +25</span></span>
+        <span class="heat-neg"><i></i>lower</span>
+      </div>
+    </div>
+
+    <p class="note reveal">Across single domains (method × csOOD dataset × corruption, 2,430 in total), TALOR raises the H-score in 2,363 (97.2 %), ties in 57 and lowers it in 10, by at most 0.16 points. UniEnt = EATA + UniEnt+, COME = EATA + COME, COME (SAR) = SAR + COME.</p>
+  </div>
+</section>
+
+<!-- ===================================================== DOCO x TALOR -->
+<section class="section doco" id="doco">
+  <div class="wrap wide two-col">
+    <div class="col-text">
+      <p class="eyebrow eyebrow-combo reveal">DOCO × TALOR</p>
+      <h2 class="reveal">Two complementary corrections</h2>
+      <p class="reveal"><a href="https://github.com/ekyle0522/DOCO">DOCO</a> (CVPR 2026) disentangles domain shift from semantic novelty through back-to-source domain compensation. TALOR then removes the drift that remains in the head's principal subspace.</p>
+      <p class="reveal">DOCO + TALOR beats DOCO on 15/15 ImageNet-C corruptions and 6/6 LAION-C corruptions.</p>
+      <div class="chips reveal">
+        <div class="chip"><span class="chip-k">ImageNet-C</span><span class="chip-v">71.8 → <b>74.9</b></span><span class="chip-g">+3.1</span></div>
+        <div class="chip"><span class="chip-k">LAION-C</span><span class="chip-v">73.5 → <b>77.1</b></span><span class="chip-g">+3.6</span></div>
+      </div>
+      <a class="btn reveal" href="https://github.com/ekyle0522/DOCO"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1 M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>DOCO on GitHub</a>
+    </div>
+    <div class="col-figure">
+      <div class="card radar-card reveal">
+        <div class="card-head card-head-row">
+          <div class="segmented segmented-sm" id="radar-tabs" role="group" aria-label="Benchmark">
+            <button type="button" data-suite="imagenet-c" aria-pressed="true">ImageNet-C</button>
+            <button type="button" data-suite="laion-c-sev1" aria-pressed="false">LAION-C</button>
+          </div>
+          <p class="card-meta" id="radar-meta">H-score per corruption, mean of six csOOD datasets</p>
+        </div>
+        <div class="chart" id="radar-chart" role="img" aria-label="Radar chart of the H-score per corruption for Source, Source + TALOR, DOCO and DOCO + TALOR."></div>
+        <div class="legend toggles" id="radar-legend">
+          <button type="button" data-series="src" aria-pressed="true"><i class="lg-line lg-src"></i>Source</button>
+          <button type="button" data-series="srcT" aria-pressed="true"><i class="lg-line lg-srcT"></i>Source + TALOR</button>
+          <button type="button" data-series="doco" aria-pressed="true"><i class="lg-line lg-doco"></i>DOCO</button>
+          <button type="button" data-series="docoT" aria-pressed="true"><i class="lg-line lg-docoT"></i>DOCO + TALOR</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================== cost -->
+<section class="section alt" id="cost">
+  <div class="wrap">
+    <p class="eyebrow reveal">Cost</p>
+    <h2 class="reveal">Almost free</h2>
+    <p class="section-lead reveal">TALOR needs no backward pass, no augmentation loop and no long-horizon cache. On ImageNet-C it changes the wall-clock time of the 15 methods by −0.2 % to +2.2 %.</p>
+  </div>
+  <div class="wrap wide cost-grid">
+    <div class="card reveal">
+      <div class="card-head">
+        <h3>Wall-clock time</h3>
+        <p class="card-meta">full ImageNet-C stream, median of six runs, one Quadro P6000</p>
+      </div>
+      <div class="chart" id="time-chart" role="img" aria-label="Bar chart of the wall-clock time of 15 methods with and without TALOR. The bars are nearly identical."></div>
+    </div>
+    <div class="card reveal">
+      <div class="card-head">
+        <h3>Peak GPU memory</h3>
+        <p class="card-meta">as reported by nvidia-smi</p>
+      </div>
+      <div class="chart" id="memory-chart" role="img" aria-label="Bar chart of the peak GPU memory of the frozen model and UniEnt, with and without TALOR."></div>
+      <p class="card-note">On the frozen model TALOR adds 154 MiB (1,566 → 1,720 MiB). Source + TALOR uses 12 % of UniEnt's memory and runs 2.4× faster, and its H-score is 1.8 points higher.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================== method -->
+<section class="section" id="method">
+  <div class="wrap">
+    <p class="eyebrow reveal">Method</p>
+    <h2 class="reveal">How TALOR works</h2>
+    <p class="section-lead reveal">TALOR is a gradient-free layer between the feature extractor and the source linear head. The backbone and the head stay unchanged.</p>
+  </div>
+  <div class="wrap wide">
+    <figure class="card pipeline reveal" id="pipeline-figure">
+      <button type="button" class="pipeline-zoom" aria-label="Enlarge the pipeline figure">
+        <picture>
+          <source srcset="assets/pipeline.webp" type="image/webp">
+          <img src="assets/pipeline.png" width="1800" height="615" alt="TALOR pipeline: head-induced coordinates, dual-regime soft routing by tail energy, affine principal drift, and rectified inference with the unchanged head." loading="lazy">
+        </picture>
+      </button>
+      <figcaption><span class="hint-mouse">Click</span><span class="hint-touch">Tap</span> to enlarge.</figcaption>
+    </figure>
+  </div>
+  <div class="wrap wide steps-grid">
+    <article class="step-tile reveal">
+      <span class="num">1</span>
+      <h3>Head-induced coordinates</h3>
+      <p>The SVD of the frozen head, <span class="math">W = UΣV<sup>⊤</sup></span>, splits the normalized feature into principal coordinates (the top singular directions holding τ = 80 % of the spectral energy) and tail coordinates. On ViT-B/16 this gives 353 principal and 415 tail dimensions.</p>
+    </article>
+    <article class="step-tile reveal">
+      <span class="num">2</span>
+      <h3>Tail cues</h3>
+      <p>Tail coordinates barely change the logits, but they respond to the shift, and their drift linearly predicts part of the principal drift (<i>tail-to-principal leakage</i>, see below).</p>
+    </article>
+    <article class="step-tile reveal">
+      <span class="num">3</span>
+      <h3>Soft-routed affine drift</h3>
+      <p>A two-component GMM on the tail energy ‖u‖² gives soft ID / OOD responsibilities. For each branch TALOR keeps a principal mean and a tail-to-principal slope, fitted online by weighted ridge regression and smoothed with an EMA. The ridge problem is solved in its dual form, so its cost depends on the batch size rather than on the tail dimension.</p>
+    </article>
+    <article class="step-tile reveal">
+      <span class="num">4</span>
+      <h3>Rectified inference</h3>
+      <p>The predicted drift is subtracted from the principal coordinates only. The feature is rebuilt with the untouched tail and the original norm, then passed to the unchanged head.</p>
+    </article>
+  </div>
+
+  <div class="wrap wide">
+    <div class="card split-card reveal">
+      <div class="card-head">
+        <h3>Where the head is cut</h3>
+        <p class="card-meta">TALOR keeps the top singular directions of the frozen head that hold a fraction τ of its squared singular values. Drag τ to move the cut.</p>
+      </div>
+      <div class="chart" id="split-chart" role="img" aria-label="Singular values of the ViT-B/16 classifier head and their cumulative energy, with the principal / tail split for the chosen tau."></div>
+      <div class="slider-row">
+        <label for="tau-slider">τ</label>
+        <input type="range" id="tau-slider" min="0.5" max="0.99" step="0.01" value="0.8">
+        <output id="tau-out" for="tau-slider">τ = 0.80 → <b>353</b> principal · <b>415</b> tail</output>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <h3 class="subhead reveal" id="why-tail">Why tail cues?</h3>
+    <p class="reveal">We compare the features of clean ImageNet images and their corrupted copies on a frozen ViT-B/16, in the basis induced by the classifier head. Drift in the principal coordinates accounts for most of the change in the logits (left). The tail coordinates barely reach the logits, yet their drift is about as large as their clean variation (middle), and it linearly predicts the principal drift far better than shuffled pairs do (right). TALOR therefore reads the shift from the tail and corrects only the principal coordinates. ResNet-50 shows the same pattern (see the paper's appendix).</p>
+  </div>
+  <div class="wrap wide fig3-grid">
+    <div class="card fig3-card reveal">
+      <h4>Principal drives the logits</h4>
+      <p class="card-meta">mean squared drift × squared singular value</p>
+      <div class="chart" id="fig3a" role="img" aria-label="Logit impact per head-induced direction; principal directions dominate."></div>
+    </div>
+    <div class="card fig3-card reveal">
+      <h4>Tail still moves with the shift</h4>
+      <p class="card-meta">mean squared drift / clean variance</p>
+      <div class="chart" id="fig3b" role="img" aria-label="Relative shift per head-induced direction; tail directions drift about as much as their clean variation."></div>
+    </div>
+    <div class="card fig3-card reveal">
+      <h4>Tail drift predicts principal drift</h4>
+      <p class="card-meta">canonical correlation, tail vs. principal drift</p>
+      <div class="chart" id="fig3c" role="img" aria-label="Canonical correlations between tail and principal drift, far above the shuffled-pair baseline."></div>
+    </div>
+  </div>
+  <div class="wrap">
+    <p class="caption reveal">Frozen ViT-B/16 · paired clean / corrupted ImageNet-C (15 corruptions, severity 5) · directions of the head's SVD basis sorted by singular value, cut at <i>k</i> = 353 · thin lines: single directions, thick lines: smoothed · shuffled pairs: 95th percentile of 20 permutations.</p>
+    <p class="hparams reveal"><span>Same hyper-parameters everywhere</span><code>τ = 0.8</code><code>β = 0.9 (EMA)</code><code>λ = 0.01 (ridge)</code></p>
+  </div>
+</section>
+
+<!-- ===================================================== citation -->
+<section class="section alt" id="cite">
+  <div class="wrap narrow">
+    <p class="eyebrow reveal">Citation</p>
+    <h2 class="reveal">Cite TALOR</h2>
+    <div class="bib reveal">
+      <button type="button" class="copy" data-copy="bib-talor">Copy</button>
+      <pre id="bib-talor"><code>@article{yang2026talor,
+  title   = {Tail Cues, Principal Corrections: Plug-and-Play Rectification for Open-Set Test-Time Adaptation},
+  author  = {Yang, Yingkai and Chen, Chaoqi and Huang, Hui},
+  journal = {arXiv preprint arXiv:2610.36870},
+  year    = {2026}
+}</code></pre>
+    </div>
+    <p class="reveal">If you use DOCO + TALOR, please also cite DOCO:</p>
+    <div class="bib reveal">
+      <button type="button" class="copy" data-copy="bib-doco">Copy</button>
+      <pre id="bib-doco"><code>@inproceedings{yang2026backtosource,
+  title     = {Back to Source: Open-Set Continual Test-Time Adaptation via Domain Compensation},
+  author    = {Yang, Yingkai and Chen, Chaoqi and Huang, Hui},
+  booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition},
+  year      = {2026}
+}</code></pre>
+    </div>
+  </div>
+</section>
+
+<section class="section ack">
+  <div class="wrap narrow">
+    <h2 class="h3 reveal">Acknowledgments</h2>
+    <p class="reveal">Our framework builds on <a href="https://github.com/yunbeizhang/DPCore">DPCore</a> and <a href="https://github.com/ekyle0522/DOCO">DOCO</a>. We also thank the authors of <a href="https://github.com/yuyongcan/STAMP">STAMP</a>, <a href="https://github.com/BlueWhaleLab/COME">COME</a>, <a href="https://github.com/gaozhengqing/UniEnt">UniEnt</a>, <a href="https://github.com/FanfeiLi/LAION-C">LAION-C</a>, <a href="https://github.com/kzkadc/regression-tta">SSA</a> and <a href="https://github.com/RobustBench/robustbench">RobustBench</a> for releasing their code.</p>
+  </div>
+</section>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-inner">
+    <a class="brand" href="#top" aria-label="Back to top"><svg class="scissors scissors-foot" viewBox="0 0 512 512" style="--px:269.9px;--py:243.3px" aria-hidden="true" focusable="false"><g class="half half-back"><path d="M255.6 276.6L375.4 51.3L375.9 31.1Q265.3 133.4 215.7 255.4ZM252.9 225.6L233.7 324.3L273.2 332.0L292.3 233.3Z" fill="none" stroke="#1f2328" stroke-width="26.1" stroke-linejoin="round"/><path d="M255.6 276.6L375.4 51.3L375.9 31.1Q265.3 133.4 215.7 255.4ZM252.9 225.6L233.7 324.3L273.2 332.0L292.3 233.3Z" fill="#cfd5dc"/><path d="M270.4 223.1Q298.7 137.7 348.4 70.1" fill="none" stroke="#fff" stroke-opacity="0.6" stroke-width="7.2" stroke-linecap="round"/><path d="M230.7 313.5L222.1 357.9L271.4 367.4L280.0 323.0ZM223.9 480.0A66.3 57.3 -259.0 1 0 249.2 349.8A66.3 57.3 -259.0 1 0 223.9 480.0ZM228.7 455.4A41.2 32.2 -259.0 1 0 244.4 374.5A41.2 32.2 -259.0 1 0 228.7 455.4Z" fill="none" stroke="#1f2328" stroke-width="26.1" stroke-linejoin="round"/><path d="M230.7 313.5L222.1 357.9L271.4 367.4L280.0 323.0ZM223.9 480.0A66.3 57.3 -259.0 1 0 249.2 349.8A66.3 57.3 -259.0 1 0 223.9 480.0ZM228.7 455.4A41.2 32.2 -259.0 1 0 244.4 374.5A41.2 32.2 -259.0 1 0 228.7 455.4Z" fill="#0f8461" fill-rule="evenodd"/></g><g class="half half-front"><path d="M237.1 258.8L458.1 131.1L478.3 129.9Q379.9 244.1 259.7 297.9ZM279.1 220.5L181.2 243.1L190.2 282.3L288.2 259.7Z" fill="none" stroke="#1f2328" stroke-width="26.1" stroke-linejoin="round"/><path d="M237.1 258.8L458.1 131.1L478.3 129.9Q379.9 244.1 259.7 297.9ZM279.1 220.5L181.2 243.1L190.2 282.3L288.2 259.7Z" fill="#eceff2"/><path d="M290.1 242.1Q374.4 210.8 440.3 158.9" fill="none" stroke="#fff" stroke-opacity="0.95" stroke-width="7.2" stroke-linecap="round"/><path d="M189.9 236.0L145.8 246.2L157.1 295.1L201.2 284.9ZM34.9 297.5A66.3 57.3 -193.0 1 0 164.2 267.7A66.3 57.3 -193.0 1 0 34.9 297.5ZM59.4 291.9A41.2 32.2 -193.0 1 0 139.7 273.4A41.2 32.2 -193.0 1 0 59.4 291.9Z" fill="none" stroke="#1f2328" stroke-width="26.1" stroke-linejoin="round"/><path d="M189.9 236.0L145.8 246.2L157.1 295.1L201.2 284.9ZM34.9 297.5A66.3 57.3 -193.0 1 0 164.2 267.7A66.3 57.3 -193.0 1 0 34.9 297.5ZM59.4 291.9A41.2 32.2 -193.0 1 0 139.7 273.4A41.2 32.2 -193.0 1 0 59.4 291.9Z" fill="#12946b" fill-rule="evenodd"/></g><g class="pivot"><path d="M289.0 243.3A19.1 19.1 0 1 0 250.8 243.3A19.1 19.1 0 1 0 289.0 243.3Z" fill="none" stroke="#1f2328" stroke-width="26.1" stroke-linejoin="round"/><path d="M289.0 243.3A19.1 19.1 0 1 0 250.8 243.3A19.1 19.1 0 1 0 289.0 243.3Z" fill="#f4f5f7"/><path d="M276.5 243.3A6.5 6.5 0 1 0 263.4 243.3A6.5 6.5 0 1 0 276.5 243.3Z" fill="#1f2328"/></g></svg><span>TALOR</span></a>
+    <p>NeurIPS 2026 · Yingkai Yang, Chaoqi Chen, Hui Huang · Shenzhen University</p>
+    <p><a href="https://github.com/ekyle0522/TALOR">Code</a> under the MIT License · results from the seed-53 release run</p>
+  </div>
+</footer>
+
+<div class="tooltip" id="tooltip" role="status" aria-live="polite"></div>
+<div class="lightbox" id="lightbox" hidden>
+  <button type="button" class="lightbox-close" aria-label="Close">×</button>
+  <picture>
+    <source srcset="assets/pipeline.webp" type="image/webp">
+    <img src="assets/pipeline.png" alt="TALOR pipeline, enlarged.">
+  </picture>
+</div>
+<button type="button" class="to-top" id="to-top" aria-label="Back to top"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg></button>
+<noscript><p class="noscript">The figures on this page are interactive and need JavaScript. Static versions are in the <a href="https://github.com/ekyle0522/TALOR">GitHub README</a>.</p></noscript>
+
+<script src="data/talor_data.js"></script>
+<script src="js/util.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

@@ -6,7 +6,7 @@
 
 **NeurIPS 2026**
 
-[![arXiv](https://img.shields.io/badge/arXiv-2610.36870-b31b1b.svg)](https://arxiv.org/abs/2610.36870) [![NeurIPS 2026](https://img.shields.io/badge/NeurIPS-2026-7444d6.svg)](https://neurips.cc/) [![Hugging Face Dataset](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Dataset-FFD21E.svg)](https://huggingface.co/datasets/ekyleyang/DOCO-LAION-C) [![DOCO](https://img.shields.io/badge/companion-DOCO%20%7C%20CVPR%202026-3b63d9.svg)](https://github.com/ekyle0522/DOCO) [![License: MIT](https://img.shields.io/badge/license-MIT-12946b.svg)](LICENSE)
+[![Project Page](https://img.shields.io/badge/Project-Page-4285F4.svg?logo=googlechrome&logoColor=white)](https://ekyle0522.github.io/TALOR/) [![arXiv](https://img.shields.io/badge/arXiv-2610.36870-b31b1b.svg)](https://arxiv.org/abs/2610.36870) [![NeurIPS 2026](https://img.shields.io/badge/NeurIPS-2026-7444d6.svg)](https://neurips.cc/) [![Hugging Face Dataset](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Dataset-FFD21E.svg)](https://huggingface.co/datasets/ekyleyang/DOCO-LAION-C) [![DOCO](https://img.shields.io/badge/companion-DOCO%20%7C%20CVPR%202026-3b63d9.svg)](https://github.com/ekyle0522/DOCO) [![License: MIT](https://img.shields.io/badge/license-MIT-12946b.svg)](LICENSE)
 
 </div>
 
@@ -72,6 +72,73 @@ The same hyper-parameters are used everywhere: τ = 0.8, EMA momentum β = 0.9, 
 </p>
 
 We compare the features of clean ImageNet images and their corrupted copies on a frozen ViT-B/16, in the basis induced by the classifier head. Drift in the principal coordinates accounts for most of the change in the logits (left). The tail coordinates barely reach the logits, yet their drift is about as large as their clean variation (middle), and it linearly predicts the principal drift far better than shuffled pairs do (right). TALOR therefore reads the shift from the tail and corrects only the principal coordinates. ResNet-50 shows the same pattern (see the paper's appendix).
+
+## 🚀 Reproduction
+
+<details>
+<summary><b>1. Environment</b></summary>
+
+```bash
+conda env create -f environment.yml   # creates the "doco" environment
+conda activate doco
+```
+
+</details>
+
+<details>
+<summary><b>2. Datasets</b></summary>
+
+Prepare **ImageNet** (validation split), **ImageNet-C** and optionally **LAION-C** following the data preparation guide in our companion repo [DOCO](https://github.com/ekyle0522/DOCO).
+The `make_C_corruption/` and `make_L_corruption/` directories here contain the same corruption-generation pipelines.
+
+Point `DATA_ROOT` to the parent directory that holds all dataset folders:
+
+```bash
+export DATA_ROOT=/path/to/datasets
+```
+
+</details>
+
+<details>
+<summary><b>3. Run the experiment matrix</b></summary>
+
+Each benchmark has a multi-GPU launch script. Set `TALOR_ENABLED=True` to run every method both with and without TALOR (default: baselines only).
+
+```bash
+# Closed-set (ImageNet-A / R / Sketch / C)
+TALOR_ENABLED=True bash closed_imgnetCLASR_multigpu_compare.sh
+
+# Open-set TTA — ImageNet-C (× csOOD ratio)
+TALOR_ENABLED=True bash imgnetcXratio_octta_multigpu_compare.sh
+
+# Open-set TTA — LAION-C (× severity)
+TALOR_ENABLED=True bash laioncXseverity_octta_multigpu_compare.sh
+```
+
+Override the default GPU → method mapping from the command line:
+
+```bash
+bash imgnetcXratio_octta_multigpu_compare.sh 0:doco,source 1:dpcore,vida
+```
+
+</details>
+
+<details>
+<summary><b>4. Summarize results</b></summary>
+
+Copy the matching summarize script into a result directory and run it. Markdown and CSV tables are generated in place.
+
+```bash
+# Closed-set results
+cp summarize_closed_acc_logs.py output_closed_benchmarks/
+cd output_closed_benchmarks && python summarize_closed_acc_logs.py
+
+# OCTTA results (e.g. ImageNet-C, ratio = 50 %)
+cp summarize_octta_logs.py output_imgnetc/ratio_50/
+cd output_imgnetc/ratio_50 && python summarize_octta_logs.py
+```
+
+</details>
 
 ## 📌 Citation
 
